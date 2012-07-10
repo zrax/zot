@@ -4,21 +4,22 @@ import os, sys
 import socket
 import re
 
-RE_PRE = re.compile('(\+\+|--)([\w.:]+)')
-RE_POST = re.compile('([\w.:]+)(\+\+|--)')
-RE_QUERY = re.compile('\?([\w.:]+)')
+RE_PRE = re.compile('^(\+\+|--)([\w.:]+)(\s|$)')
+RE_POST = re.compile('^([\w.:]+)(\+\+|--)(\s|$)')
+RE_QUERY = re.compile('^\?([\w.:]+)(\s|$)')
 
 ZOT_VERSION = "ZOT 0.1"
 DBASE_FILE = "zot.db"
 
 class zot:
-    def __init__(self, addr, port, channels):
+    def __init__(self, addr, port, nick, channels):
+        self.nick = nick
         self.dbase = { }
         self.load_dbase(DBASE_FILE)
 
         self.sock = socket.create_connection((addr, port))
-        self.sock.send('USER zot . . zot\r\n')
-        self.sock.send('NICK zot\r\n')
+        self.sock.send('USER %s . . %s\r\n' % (nick, nick))
+        self.sock.send('NICK %s\r\n' % nick)
         for chan in channels:
             self.sock.send('JOIN #%s\r\n' % chan)
 
@@ -86,10 +87,12 @@ class zot:
                 print "Got bad message!"
                 return
 
-            dest = recp
             snick = sender.split('!')[0]
-            if not(recp.startswith('#')):
+            if recp == self.nick:
                 dest = snick
+            else:
+                dest = recp
+
             if text.startswith(':'):
                 text = text[1:]
 
@@ -101,7 +104,7 @@ class zot:
                     self.dbase[key] = value
                 else:
                     self.dbase[key] += value
-                self.sendMsg(recp, '%s = %d' % (key, self.dbase[key]))
+                self.sendMsg(dest, '%s = %d' % (key, self.dbase[key]))
                 return
 
             match = RE_POST.search(text)
@@ -112,7 +115,7 @@ class zot:
                     self.dbase[key] = value
                 else:
                     self.dbase[key] += value
-                self.sendMsg(recp, '%s = %d' % (key, self.dbase[key]))
+                self.sendMsg(dest, '%s = %d' % (key, self.dbase[key]))
                 return
 
             match = RE_QUERY.search(text)
@@ -122,7 +125,7 @@ class zot:
                     value = self.dbase[key]
                 except KeyError:
                     value = 0
-                self.sendMsg(recp, '%s = %d' % (key, value))
+                self.sendMsg(dest, '%s = %d' % (key, value))
                 return
 
             if text.lower() == '\x01version\x01':
@@ -142,6 +145,7 @@ if len(sys.argv) < 4:
 
 host = sys.argv[1]
 port = int(sys.argv[2])
-channels = sys.argv[3:]
-server = zot(host, port, channels)
+nick = sys.argv[3]
+channels = sys.argv[4:]
+server = zot(host, port, nick, channels)
 server.run()
