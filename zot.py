@@ -13,6 +13,7 @@ DBASE_FILE = "zot.db"
 
 class zot:
     def __init__(self, addr, port, nick, channels):
+        self.nick = nick
         self.dbase = { }
         self.load_dbase(DBASE_FILE)
 
@@ -86,10 +87,12 @@ class zot:
                 print "Got bad message!"
                 return
 
-            dest = recp
             snick = sender.split('!')[0]
-            if not(recp.startswith('#')):
+            if recp == self.nick:
                 dest = snick
+            else:
+                dest = recp
+
             if text.startswith(':'):
                 text = text[1:]
 
@@ -101,7 +104,7 @@ class zot:
                     self.dbase[key] = value
                 else:
                     self.dbase[key] += value
-                self.sendMsg(recp, '%s = %d' % (key, self.dbase[key]))
+                self.sendMsg(dest, '%s = %d' % (key, self.dbase[key]))
                 return
 
             match = RE_POST.search(text)
@@ -112,7 +115,7 @@ class zot:
                     self.dbase[key] = value
                 else:
                     self.dbase[key] += value
-                self.sendMsg(recp, '%s = %d' % (key, self.dbase[key]))
+                self.sendMsg(dest, '%s = %d' % (key, self.dbase[key]))
                 return
 
             match = RE_QUERY.search(text)
@@ -122,7 +125,7 @@ class zot:
                     value = self.dbase[key]
                 except KeyError:
                     value = 0
-                self.sendMsg(recp, '%s = %d' % (key, value))
+                self.sendMsg(dest, '%s = %d' % (key, value))
                 return
 
             if text.lower() == '\x01version\x01':
