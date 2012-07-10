@@ -1,0 +1,147 @@
+#!/usr/bin/env python
+
+import os, sys
+import socket
+import re
+
+RE_PRE = re.compile('(\+\+|--)([\w.:]+)')
+RE_POST = re.compile('([\w.:]+)(\+\+|--)')
+RE_QUERY = re.compile('\?([\w.:]+)')
+
+ZOT_VERSION = "ZOT 0.1"
+DBASE_FILE = "zot.db"
+
+class zot:
+    def __init__(self, addr, port, channels):
+        self.dbase = { }
+        self.load_dbase(DBASE_FILE)
+
+        self.sock = socket.create_connection((addr, port))
+        self.sock.send('USER zot . . zot\r\n')
+        self.sock.send('NICK zot\r\n')
+        for chan in channels:
+            self.sock.send('JOIN #%s\r\n' % chan)
+
+    @staticmethod
+    def escape(text):
+        return text.replace('&', '&amp;') \
+                   .replace(':', '&colon;')
+
+    @staticmethod
+    def unescape(text):
+        return text.replace('&colon;', ':') \
+                   .replace('&amp;', '&')
+
+    def load_dbase(self, filename):
+        db = open(filename, 'r')
+        for line in db.readlines():
+            try:
+                k, v = line.split(':', 1)
+                self.dbase[zot.unescape(k)] = int(v)
+            except ValueError:
+                pass
+        db.close()
+
+    def save_dbase(self, filename):
+        db = open(filename, 'w')
+        for k in self.dbase:
+            db.write('%s:%s\n' % (zot.escape(k), str(self.dbase[k])))
+        db.close()
+
+    def run(self):
+        packet = ''
+        while True:
+            packet += self.sock.recv(4096)
+            if len(packet) == 0:
+                break
+
+            lines = packet.split('\r\n')
+            for ln in lines[:-1]:
+                self.parse(ln)
+
+            packet = lines[-1] if len(lines[-1]) else ''
+
+    def parse(self, line):
+        if len(line) == 0:
+            return
+
+        sender = ''
+        msg = line.split(None, 3)
+        if line[0] == ':':
+            sender = msg[0][1:]
+            msg = msg[1:]
+        if len(msg) < 1:
+            return
+
+        if msg[0] == 'PING':
+            # Lazy: Save the dbase on a timer!
+            self.sock.send('PONG ' + msg[1] + '\r\n')
+            self.save_dbase(DBASE_FILE)
+
+        elif msg[0] == 'PRIVMSG':
+            try:
+                recp = msg[1]
+                text = msg[2]
+            except IndexError:
+                print "Got bad message!"
+                return
+
+            dest = recp
+            snick = sender.split('!')[0]
+            if not(recp.startswith('#')):
+                dest = snick
+            if text.startswith(':'):
+                text = text[1:]
+
+            match = RE_PRE.search(text)
+            if match is not None:
+                key = match.group(2)
+                value = 1 if match.group(1) == '++' else -1
+                if key not in self.dbase:
+                    self.dbase[key] = value
+                else:
+                    self.dbase[key] += value
+                self.sendMsg(recp, '%s = %d' % (key, self.dbase[key]))
+                return
+
+            match = RE_POST.search(text)
+            if match is not None:
+                key = match.group(1)
+                value = 1 if match.group(2) == '++' else -1
+                if key not in self.dbase:
+                    self.dbase[key] = value
+                else:
+                    self.dbase[key] += value
+                self.sendMsg(recp, '%s = %d' % (key, self.dbase[key]))
+                return
+
+            match = RE_QUERY.search(text)
+            if match is not None:
+                try:
+                    key = match.group(1)
+                    value = self.dbase[key]
+                except KeyError:
+                    value = 0
+                self.sendMsg(recp, '%s = %d' % (key, value))
+                return
+
+            if text.lower() == '\x01version\x01':
+                self.sendNotice(snick, '\x01VERSION ' + ZOT_VERSION + '\x01')
+                return
+
+    def sendMsg(self, dest, msg):
+        self.sock.send('PRIVMSG ' + dest + ' :' + msg + '\r\n')
+
+    def sendNotice(self, dest, msg):
+        self.sock.send('NOTICE ' + dest + ' :' + msg + '\r\n')
+
+
+if len(sys.argv) < 4:
+    print "Usage:  %s hostname port channel [channel2 [...]]" % sys.argv[0]
+    sys.exit(1)
+
+host = sys.argv[1]
+port = int(sys.argv[2])
+channels = sys.argv[3:]
+server = zot(host, port, channels)
+server.run()
