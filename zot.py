@@ -4,9 +4,9 @@ import os, sys
 import socket
 import re
 
-RE_PRE = re.compile('(\+\+|--)([\w.:]+)')
-RE_POST = re.compile('([\w.:]+)(\+\+|--)')
-RE_QUERY = re.compile('\?([\w.:]+)')
+RE_PRE = re.compile('^(\+\+|--)([\w.:]+)(\s|$)')
+RE_POST = re.compile('^([\w.:]+)(\+\+|--)(\s|$)')
+RE_QUERY = re.compile('^\?([\w.:]+)(\s|$)')
 
 ZOT_VERSION = "ZOT 0.1"
 DBASE_FILE = "zot.db"
