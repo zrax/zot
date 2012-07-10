@@ -12,13 +12,13 @@ ZOT_VERSION = "ZOT 0.1"
 DBASE_FILE = "zot.db"
 
 class zot:
-    def __init__(self, addr, port, channels):
+    def __init__(self, addr, port, nick, channels):
         self.dbase = { }
         self.load_dbase(DBASE_FILE)
 
         self.sock = socket.create_connection((addr, port))
-        self.sock.send('USER zot . . zot\r\n')
-        self.sock.send('NICK zot\r\n')
+        self.sock.send('USER %s . . %s\r\n' % (nick, nick))
+        self.sock.send('NICK %s\r\n' % nick)
         for chan in channels:
             self.sock.send('JOIN #%s\r\n' % chan)
 
@@ -142,6 +142,7 @@ if len(sys.argv) < 4:
 
 host = sys.argv[1]
 port = int(sys.argv[2])
-channels = sys.argv[3:]
-server = zot(host, port, channels)
+nick = sys.argv[3]
+channels = sys.argv[4:]
+server = zot(host, port, nick, channels)
 server.run()
