@@ -4,11 +4,12 @@ import os, sys
 import socket
 import re
 
-RE_PRE = re.compile('^(\+\+|--)([\w.:]+)(\s|$)')
-RE_POST = re.compile('^([\w.:]+)(\+\+|--)(\s|$)')
-RE_QUERY = re.compile('^\?([\w.:]+)(\s|$)')
+IDENTIFIER = r'\w+(?:(?:\.|->|::)\w+)*'
+RE_PRE = re.compile(r'(?:^|[^\w+-])(\+\+|--)(%s)\b' % IDENTIFIER)
+RE_POST = re.compile(r'\b(%s)(\+\+|--)(?:$|[^\w+-])' % IDENTIFIER)
+RE_QUERY = re.compile(r'(?:^|[^\w+-])\?(%s)\b' % IDENTIFIER)
 
-ZOT_VERSION = "ZOT 0.1"
+ZOT_VERSION = "ZOT 0.2"
 DBASE_FILE = "zot.db"
 
 class zot:
