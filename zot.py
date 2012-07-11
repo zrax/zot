@@ -4,7 +4,7 @@ import os, sys
 import socket
 import re
 
-IDENTIFIER = r'\w+(?:(?:\.|->|::)\w+)*'
+IDENTIFIER = r'[A-Za-z_]\w*(?:(?:\.|->|::)[A-Za-z_]\w*)*'
 RE_PRE = re.compile(r'(?:^|[^\w+-])(\+\+|--)(%s)\b' % IDENTIFIER)
 RE_POST = re.compile(r'\b(%s)(\+\+|--)(?:$|[^\w+-])' % IDENTIFIER)
 RE_QUERY = re.compile(r'(?:^|[^\w+-])\?(%s)\b' % IDENTIFIER)
