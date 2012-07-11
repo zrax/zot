@@ -131,8 +131,8 @@ class zot:
         self.sock.send('NOTICE ' + dest + ' :' + msg + '\r\n')
 
 
-if len(sys.argv) < 4:
-    print "Usage:  %s hostname port channel [channel2 [...]]" % sys.argv[0]
+if len(sys.argv) < 5:
+    print "Usage:  %s hostname port nick channel [channel2 [...]]" % sys.argv[0]
     sys.exit(1)
 
 host = sys.argv[1]
