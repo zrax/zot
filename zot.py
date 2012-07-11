@@ -8,6 +8,7 @@ IDENTIFIER = r'[A-Za-z_]\w*(?:(?:\.|->|::)[A-Za-z_]\w*)*'
 RE_PRE = re.compile(r'(?:^|[^\w+-])(\+\+|--)(%s)\b' % IDENTIFIER)
 RE_POST = re.compile(r'\b(%s)(\+\+|--)(?:$|[^\w+-])' % IDENTIFIER)
 RE_QUERY = re.compile(r'(?:^|[^\w+-])\?(%s)\b' % IDENTIFIER)
+RE_PART = re.compile(r'(\.|->|::)')
 
 ZOT_VERSION = "ZOT 0.2"
 DBASE_FILE = "zot.db"
@@ -24,22 +25,12 @@ class zot:
         for chan in channels:
             self.sock.send('JOIN #%s\r\n' % chan)
 
-    @staticmethod
-    def escape(text):
-        return text.replace('&', '&amp;') \
-                   .replace(':', '&colon;')
-
-    @staticmethod
-    def unescape(text):
-        return text.replace('&colon;', ':') \
-                   .replace('&amp;', '&')
-
     def load_dbase(self, filename):
         db = open(filename, 'r')
         for line in db.readlines():
             try:
                 k, v = line.split(':', 1)
-                self.dbase[zot.unescape(k)] = int(v)
+                self.dbase[k] = int(v)
             except ValueError:
                 pass
         db.close()
@@ -47,7 +38,7 @@ class zot:
     def save_dbase(self, filename):
         db = open(filename, 'w')
         for k in self.dbase:
-            db.write('%s:%s\n' % (zot.escape(k), str(self.dbase[k])))
+            db.write('%s:%s\n' % (k, str(self.dbase[k])))
         db.close()
 
     def run(self):
@@ -99,7 +90,7 @@ class zot:
 
             match = RE_PRE.search(text)
             if match is not None:
-                key = match.group(2)
+                key = RE_PART.sub('.', match.group(2))
                 value = 1 if match.group(1) == '++' else -1
                 if key not in self.dbase:
                     self.dbase[key] = value
@@ -110,7 +101,7 @@ class zot:
 
             match = RE_POST.search(text)
             if match is not None:
-                key = match.group(1)
+                key = RE_PART.sub('.', match.group(1))
                 value = 1 if match.group(2) == '++' else -1
                 if key not in self.dbase:
                     self.dbase[key] = value
@@ -122,7 +113,7 @@ class zot:
             match = RE_QUERY.search(text)
             if match is not None:
                 try:
-                    key = match.group(1)
+                    key = RE_PART.sub('.', match.group(1))
                     value = self.dbase[key]
                 except KeyError:
                     value = 0
