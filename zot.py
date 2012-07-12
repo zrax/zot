@@ -25,6 +25,10 @@ class zot:
         for chan in channels:
             self.sock.send('JOIN #%s\r\n' % chan)
 
+    @staticmethod
+    def normalize(ident):
+        return RE_PART.sub('.', ident).lower()
+
     def load_dbase(self, filename):
         db = open(filename, 'r')
         for line in db.readlines():
@@ -90,7 +94,7 @@ class zot:
 
             match = RE_PRE.search(text)
             if match is not None:
-                key = RE_PART.sub('.', match.group(2))
+                key = zot.normalize(match.group(2))
                 value = 1 if match.group(1) == '++' else -1
                 if key not in self.dbase:
                     self.dbase[key] = value
@@ -101,7 +105,7 @@ class zot:
 
             match = RE_POST.search(text)
             if match is not None:
-                key = RE_PART.sub('.', match.group(1))
+                key = zot.normalize(match.group(1))
                 value = 1 if match.group(2) == '++' else -1
                 if key not in self.dbase:
                     self.dbase[key] = value
@@ -113,7 +117,7 @@ class zot:
             match = RE_QUERY.search(text)
             if match is not None:
                 try:
-                    key = RE_PART.sub('.', match.group(1))
+                    key = zot.normalize(match.group(1))
                     value = self.dbase[key]
                 except KeyError:
                     value = 0
