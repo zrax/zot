@@ -5,12 +5,16 @@ import socket
 import re
 
 IDENTIFIER = r'[A-Za-z_]\w*(?:(?:\.|->|::)[A-Za-z_]\w*)*'
-RE_PRE = re.compile(r'(?:^|[^\w+-])(\+\+|--)(%s)\b' % IDENTIFIER)
-RE_POST = re.compile(r'\b(%s)(\+\+|--)(?:$|[^\w+-])' % IDENTIFIER)
-RE_QUERY = re.compile(r'(?:^|[^\w+-])\?(%s)\b' % IDENTIFIER)
+WSPACE = r'(?:\s|/\*(?:[^*]|\*[^/])*\*+/)'
+RE_PRE = re.compile(r'^%s*(\+\+|--)%s*(%s)(?:%s|;)*(?://.*)?$' % \
+                    (WSPACE, WSPACE, IDENTIFIER, WSPACE))
+RE_POST = re.compile(r'^%s*(%s)%s*(\+\+|--)(?:%s|;)*(?://.*)?$' % \
+                     (WSPACE, IDENTIFIER, WSPACE, WSPACE))
+RE_QUERY = re.compile(r'^%s*\?%s*(%s)(?:%s|;)*(?://.*)?$' % \
+                      (WSPACE, WSPACE, IDENTIFIER, WSPACE))
 RE_PART = re.compile(r'(\.|->|::)')
 
-ZOT_VERSION = "ZOT 0.2"
+ZOT_VERSION = "ZOT 0.3"
 DBASE_FILE = "zot.db"
 
 class zot:
