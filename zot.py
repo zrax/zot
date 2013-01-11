@@ -19,14 +19,24 @@ DBASE_FILE = "zot.db"
 
 class zot:
     def __init__(self, addr, port, nick, channels):
+        self.server = (addr, port)
         self.nick = nick
+        self.channels = channels
+
         self.dbase = { }
         self.load_dbase(DBASE_FILE)
 
-        self.sock = socket.create_connection((addr, port))
-        self.sock.send('USER %s . . %s\r\n' % (nick, nick))
-        self.sock.send('NICK %s\r\n' % nick)
-        for chan in channels:
+        self.sock = None
+        self.connect()
+
+    def connect(self):
+        if self.sock:
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
+        self.sock = socket.create_connection(self.server, 600.0)
+        self.sock.send('USER %s . . %s\r\n' % (self.nick, self.nick))
+        self.sock.send('NICK %s\r\n' % self.nick)
+        for chan in self.channels:
             self.sock.send('JOIN #%s\r\n' % chan)
 
     @staticmethod
@@ -51,11 +61,22 @@ class zot:
 
     def run(self):
         packet = ''
+        bad_time = 0
         while True:
-            packet += self.sock.recv(4096)
+            try:
+                packet += self.sock.recv(4096)
+            except socket.timeout:
+                # Reconnect and try again
+                bad_time += 1
+                if bad_time > 3:
+                    print >>sys.stderr, "Having trouble staying connected...  Bailing out!"
+                    return
+                self.connect()
+                continue
             if len(packet) == 0:
                 break
 
+            bad_time = 0
             lines = packet.split('\r\n')
             for ln in lines[:-1]:
                 self.parse(ln)
