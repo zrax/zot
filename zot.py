@@ -30,6 +30,7 @@ class zot:
         self.connect()
 
     def connect(self):
+        print("Connecting...")
         if self.sock:
             self.sock.shutdown(socket.SHUT_RDWR)
             self.sock.close()
@@ -120,23 +121,13 @@ class zot:
             match = RE_PRE.search(text)
             if match is not None:
                 key = zot.normalize(match.group(2))
-                value = 1 if match.group(1) == '++' else -1
-                if key not in self.dbase:
-                    self.dbase[key] = value
-                else:
-                    self.dbase[key] += value
-                self.sendMsg(dest, '%s = %d' % (key, self.dbase[key]))
+                self.sendMsg(dest, self.doMath(key, match.group(1), snick))
                 return
 
             match = RE_POST.search(text)
             if match is not None:
                 key = zot.normalize(match.group(1))
-                value = 1 if match.group(2) == '++' else -1
-                if key not in self.dbase:
-                    self.dbase[key] = value
-                else:
-                    self.dbase[key] += value
-                self.sendMsg(dest, '%s = %d' % (key, self.dbase[key]))
+                self.sendMsg(dest, self.doMath(key, match.group(2), snick))
                 return
 
             match = RE_QUERY.search(text)
@@ -152,6 +143,30 @@ class zot:
             if text.lower() == '\x01version\x01':
                 self.sendNotice(snick, '\x01VERSION ' + ZOT_VERSION + '\x01')
                 return
+
+    def update(self, key, delta):
+        if key not in self.dbase:
+            self.dbase[key] = delta
+        else:
+            self.dbase[key] += delta
+
+    def doMath(self, key, oper, snick):
+        snick = zot.normalize(snick)
+        if oper == '++':
+            if key == snick:
+                self.update(key, -1)
+                return '%s = %d  // Thou shalt not increment thyself!' \
+                       % (key, self.dbase[key])
+            elif key == 'eap':
+                self.update(snick, -1)
+                self.update(key, -1)
+                return '%s = %d, %s = %d  // Thou shalt not increment eap!' \
+                       % (key, self.dbase[key], snick, self.dbase[snick])
+            else:
+                self.update(key, 1)
+        else:
+            self.update(key, -1)
+        return '%s = %d' % (key, self.dbase[key])
 
     def sendMsg(self, dest, msg):
         self.sock.send('PRIVMSG ' + dest + ' :' + msg + '\r\n')
