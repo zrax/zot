@@ -27,7 +27,7 @@ IrcClient::IrcClient(const char *dbfile, const char *hostname, const char *port,
                      const char *nick)
     : m_db(dbfile), m_state(SDisconnected),
       m_resolver(m_ioctx), m_sock(m_ioctx),
-      m_ping(m_ioctx), m_timeout(m_ioctx),
+      m_ping(m_ioctx), m_timeout(m_ioctx), m_savetime(m_ioctx),
       m_signals(m_ioctx, SIGINT, SIGTERM),
       m_hostname(hostname), m_port(port), m_nick(nick)
 {
@@ -54,6 +54,7 @@ void IrcClient::disconnect()
     m_resolver.cancel();
     m_ping.cancel();
     m_timeout.cancel();
+    m_savetime.cancel();
     m_signals.cancel();
 }
 
@@ -233,6 +234,18 @@ void IrcClient::start_ping_timer()
             reset_connection();
         });
         send("PING :zot\r\n");
+    });
+}
+
+void IrcClient::start_save_timer()
+{
+    m_savetime.expires_after(std::chrono::minutes(15));
+    m_savetime.async_wait([this](const asio::error_code &err) {
+        if (err)
+            return;
+
+        m_db.sync();
+        start_save_timer();
     });
 }
 

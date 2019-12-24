@@ -51,6 +51,7 @@ private:
     void perform_join();
 
     void start_ping_timer();
+    void start_save_timer();
     void reset_connection();
 
     ZotDB m_db;
@@ -62,6 +63,7 @@ private:
     tcp::socket m_sock;
     asio::steady_timer m_ping;
     asio::steady_timer m_timeout;
+    asio::steady_timer m_savetime;
     asio::signal_set m_signals;
 
     std::string m_hostname;
