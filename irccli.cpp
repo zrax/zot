@@ -21,7 +21,7 @@
 #include <asio/write.hpp>
 #include <asio/signal_set.hpp>
 
-#define DEBUGIO
+//#define DEBUGIO
 
 IrcClient::IrcClient(const char *dbfile, const char *hostname, const char *port,
                      const char *nick)
@@ -158,6 +158,40 @@ void IrcClient::start_read()
             send("PONG " + parts[1] + "\r\n");
         } else if (parts.size() > 1 && parts[1] == "PONG") {
             m_timeout.cancel();
+        } else if (parts.size() > 3 && parts[1] == "PRIVMSG") {
+            auto bang = parts[0].find('!');
+            auto sender = (bang != std::string::npos) ? parts[0].substr(0, bang) : parts[0];
+            if (!sender.empty() && sender.front() == ':')
+                sender = sender.substr(1);
+
+            auto dest = parts[2];
+            if (!dest.empty() && dest.front() == ':')
+                dest = dest.substr(1);
+            if (dest == m_nick)
+                dest = sender;
+
+            auto message = parts[3];
+            if (!message.empty() && message.front() == ':')
+                message = message.substr(1);
+
+            auto p = parse_line(message);
+            long value = 0;
+            switch (p.m_op) {
+            case Parsed::Increment:
+                value = m_db.increment(p.m_name);
+                break;
+            case Parsed::Decrement:
+                value = m_db.decrement(p.m_name);
+                break;
+            case Parsed::Query:
+                value = m_db.value(p.m_name);
+                break;
+            default:
+                break;
+            }
+
+            if (p.m_op != Parsed::Invalid)
+                send("PRIVMSG " + dest + " :" + p.m_name + " = " + std::to_string(value) + "\r\n");
         }
 
         // Setup read for next line

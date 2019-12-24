@@ -37,14 +37,14 @@ public:
         return iter->second;
     }
 
-    void increment(const std::string &key)
+    long increment(const std::string &key)
     {
-        ++m_values[normalize(key)];
+        return ++m_values[normalize(key)];
     }
 
-    void decrement(const std::string &key)
+    long decrement(const std::string &key)
     {
-        --m_values[normalize(key)];
+        return --m_values[normalize(key)];
     }
 
     // Write the database back to disk
@@ -56,3 +56,11 @@ private:
     std::string m_filename;
     std::unordered_map<std::string, long> m_values;
 };
+
+struct Parsed
+{
+    enum { Invalid, Increment, Decrement, Query } m_op;
+    std::string m_name;
+};
+
+Parsed parse_line(const std::string &line);

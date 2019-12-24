@@ -77,3 +77,90 @@ std::string ZotDB::normalize(const std::string &key)
     const static std::regex re_seps("(::|->)");
     return std::regex_replace(key, re_seps, ".");
 }
+
+Parsed parse_line(const std::string &line)
+{
+    const std::regex re_clean("(?:/\\*(?:[^/]|/[^*])*\\*/|//.*)");
+    const std::regex re_ident("^[A-Za-z_][A-Za-z0-9_]*(?:(?:\\.|->|::)[A-Za-z_][A-Za-z0-9_]*)*");
+
+    std::string clean = std::regex_replace(line, re_clean, "");
+    const char *pc = clean.c_str();
+    while (isspace(*pc))
+        ++pc;
+
+    if (*pc == '?') {
+        // Query
+        ++pc;
+        while (isspace(*pc))
+            ++pc;
+
+        std::cmatch m;
+        if (std::regex_search(pc, m, re_ident)) {
+            pc += m.length();
+            while (isspace(*pc) || *pc == ';')
+                ++pc;
+            if (*pc == 0)
+                return { Parsed::Query, m.str() };
+        }
+    } else if (pc[0] == '+' && pc[1] == '+') {
+        // Increment
+        pc += 2;
+        while (isspace(*pc))
+            ++pc;
+
+        std::cmatch m;
+        if (std::regex_search(pc, m, re_ident)) {
+            pc += m.length();
+            while (isspace(*pc) || *pc == ';')
+                ++pc;
+            if (*pc == 0)
+                return { Parsed::Increment, m.str() };
+        }
+    } else if (pc[0] == '-' && pc[1] == '-') {
+        // Decrement
+        pc += 2;
+        while (isspace(*pc))
+            ++pc;
+
+        std::cmatch m;
+        if (std::regex_search(pc, m, re_ident)) {
+            pc += m.length();
+            while (isspace(*pc) || *pc == ';')
+                ++pc;
+            if (*pc == 0)
+                return { Parsed::Decrement, m.str() };
+        }
+    } else {
+        std::cmatch m;
+        if (std::regex_search(pc, m, re_ident)) {
+            pc += m.length();
+            while (isspace(*pc))
+                ++pc;
+
+            if (*pc == '?') {
+                // Query
+                ++pc;
+                while (isspace(*pc) || *pc == ';')
+                    ++pc;
+                if (*pc == 0)
+                    return { Parsed::Query, m.str() };
+            } else if (pc[0] == '+' && pc[1] == '+') {
+                // Increment
+                pc += 2;
+                while (isspace(*pc) || *pc == ';')
+                    ++pc;
+                if (*pc == 0)
+                    return { Parsed::Increment, m.str() };
+            } else if (pc[0] == '-' && pc[1] == '-') {
+                // Decrement
+                pc += 2;
+                while (isspace(*pc) || *pc == ';')
+                    ++pc;
+                if (*pc == 0)
+                    return { Parsed::Decrement, m.str() };
+            }
+        }
+    }
+
+    return { Parsed::Invalid, {} };
+}
