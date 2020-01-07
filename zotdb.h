@@ -39,22 +39,25 @@ public:
 
     long increment(const std::string &key)
     {
+        m_dirty = true;
         return ++m_values[normalize(key)];
     }
 
     long decrement(const std::string &key)
     {
+        m_dirty = true;
         return --m_values[normalize(key)];
     }
 
     // Write the database back to disk
-    void sync() const;
+    void sync();
 
 private:
     static std::string normalize(const std::string &key);
 
     std::string m_filename;
     std::unordered_map<std::string, long> m_values;
+    bool m_dirty;
 };
 
 struct Parsed

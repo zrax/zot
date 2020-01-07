@@ -20,7 +20,7 @@
 #include <stdio.h>
 
 ZotDB::ZotDB(std::string filename)
-    : m_filename(std::move(filename))
+    : m_filename(std::move(filename)), m_dirty(false)
 {
     FILE *db = fopen(m_filename.c_str(), "r");
     if (!db)
@@ -57,8 +57,11 @@ ZotDB::ZotDB(std::string filename)
     fclose(db);
 }
 
-void ZotDB::sync() const
+void ZotDB::sync()
 {
+    if (!m_dirty)
+        return;
+
     FILE *db = fopen(m_filename.c_str(), "w");
     if (!db) {
         fprintf(stderr, "Failed to open %s for writing: %s\n", m_filename.c_str(),
@@ -70,6 +73,8 @@ void ZotDB::sync() const
         fprintf(db, "%s:%ld\n", line.first.c_str(), line.second);
 
     fclose(db);
+
+    m_dirty = false;
 }
 
 std::string ZotDB::normalize(const std::string &key)

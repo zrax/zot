@@ -41,6 +41,8 @@ IrcClient::IrcClient(const char *dbfile, const char *hostname, const char *port,
         }
         disconnect();
     });
+
+    start_save_timer();
 }
 
 void IrcClient::disconnect()
