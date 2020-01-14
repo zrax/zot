@@ -142,14 +142,7 @@ Parsed parse_line(const std::string &line)
             while (isspace(*pc))
                 ++pc;
 
-            if (*pc == '?') {
-                // Query
-                ++pc;
-                while (isspace(*pc) || *pc == ';')
-                    ++pc;
-                if (*pc == 0)
-                    return { Parsed::Query, m.str() };
-            } else if (pc[0] == '+' && pc[1] == '+') {
+            if (pc[0] == '+' && pc[1] == '+') {
                 // Increment
                 pc += 2;
                 while (isspace(*pc) || *pc == ';')
