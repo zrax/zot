@@ -69,8 +69,7 @@ void IrcClient::connect()
                 fprintf(stderr, "Failed to resolve %s:%s: %s\n",
                         m_hostname.c_str(), m_port.c_str(), err.message().c_str());
             }
-            // Don't attempt reconnect here...
-            disconnect();
+            reset_connection();
             return;
         }
 
