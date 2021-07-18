@@ -80,7 +80,11 @@ void ZotDB::sync()
 std::string ZotDB::normalize(const std::string &key)
 {
     const static std::regex re_seps("(::|->)");
-    return std::regex_replace(key, re_seps, ".");
+    std::string norm = std::regex_replace(key, re_seps, ".");
+    std::transform(norm.begin(), norm.end(), norm.begin(), [](char c) {
+        return std::tolower(c, std::locale::classic());
+    });
+    return norm;
 }
 
 Parsed parse_line(const std::string &line)
